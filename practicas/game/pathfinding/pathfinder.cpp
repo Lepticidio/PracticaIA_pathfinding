@@ -21,8 +21,46 @@ Pathfinder::~Pathfinder()
 
 void Pathfinder::UpdatePath()
 {
+	USVec2D vEndPosition = GetEndPosition();
+	USVec2D vStartPosition = GetStartPosition();
+	Node targetNode = NodeFromPosition(vEndPosition.mX, vEndPosition.mY);
+	Node currentNode = NodeFromPosition(vStartPosition.mX, vStartPosition.mY);
+
+	for (int i = 0; i < m_tNodes.size(); i++)
+	{
+		Node node = m_tNodes[i];
+		USVec2D vPositionNode = PositionFromNode(node);
+		node.UpdateH((vEndPosition - vPositionNode).Length());
+	}
+	std::vector<Node> tUnexploredNodes = m_tNodes;
 	std::vector<Node> tOpenNodes;
 	std::vector<Node> tClosedNodes;
+	tOpenNodes.push_back(currentNode);
+	while (tOpenNodes.size() > 0)
+	{
+		float fSmallestF= std::numeric_limits<float>::max();
+		int iIndexCurrent = 0;
+		for (int i = 0; i < tOpenNodes.size(); i++)
+		{
+			Node node = tOpenNodes[i];
+			if (node.m_fF < fSmallestF)
+			{
+				fSmallestF = node.m_fF;
+				currentNode = node;
+				iIndexCurrent = i;
+			}
+		}
+		tOpenNodes.erase(tOpenNodes.begin()+iIndexCurrent);
+		tClosedNodes.push_back(currentNode);
+		USVec2D vCurrentPosition = PositionFromNode(currentNode);
+		m_tPathPoints.push_back(vCurrentPosition);
+		if (currentNode.m_iID == targetNode.m_iID)
+		{
+			break;
+		}
+
+	}
+
 }
 
 void Pathfinder::DrawDebug()
@@ -115,6 +153,7 @@ void Pathfinder::InitializeNodes()
 		Node node;
 		node.m_iX = i % m_iGridWidth;
 		node.m_iY = i / m_iGridWidth;
+		node.m_iID = i;
 		if (c == '#')
 		{
 			node.m_bBlocked = true;
@@ -141,6 +180,22 @@ void Pathfinder::InitializeNodes()
 		}
 		m_tNodes.push_back(node);
 	}
+}
+Node Pathfinder::NodeFromPosition(float _fX, float _fY)
+{
+	int iX = _fX / m_iTileSize;
+	int iY = _fY / m_iTileSize;
+	int iLocation = iY * m_iGridWidth + iX;
+	if (iLocation > 0 && iLocation < m_tNodes.size())
+	{
+		return m_tNodes[iLocation];
+	}
+}
+USVec2D Pathfinder::PositionFromNode(Node _node)
+{
+	float fX = _node.m_iX * m_iTileSize;
+	float fY = _node.m_iY * m_iTileSize;
+	return USVec2D(fX, fY);
 }
 char Pathfinder::GetTileChar(int _iX, int _iY)
 {
