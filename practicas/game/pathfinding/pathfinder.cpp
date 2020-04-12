@@ -4,17 +4,6 @@
 #include "pathfinder.h"
 
 
-enum NodeState {open, closed};
-struct Node
-{
-	int m_iX;
-	int m_iY;
-	int m_iCost;
-	float m_fH;
-	float m_fG;
-	float m_fF;
-	NodeState m_eState = open;
-};
 
 Pathfinder::Pathfinder() : MOAIEntity2D()
 {
@@ -22,6 +11,7 @@ Pathfinder::Pathfinder() : MOAIEntity2D()
 		RTTI_EXTEND(MOAIEntity2D)
 	RTTI_END
 	LoadGrid("map.txt");
+	InitializeNodes();
 }
 
 Pathfinder::~Pathfinder()
@@ -31,7 +21,8 @@ Pathfinder::~Pathfinder()
 
 void Pathfinder::UpdatePath()
 {
-
+	std::vector<Node> tOpenNodes;
+	std::vector<Node> tClosedNodes;
 }
 
 void Pathfinder::DrawDebug()
@@ -41,7 +32,7 @@ void Pathfinder::DrawDebug()
 	{
 		for (int j = 0; j < m_tGrid.size() / m_iGridWidth; j++)
 		{
-			char c = GetTile(i, j);
+			char c = GetTileChar(i, j);
 			if (c == '#')
 			{
 				gfxDevice.SetPenColor(0.2f, 0.2f, 0.8f, 0.2f);
@@ -76,6 +67,18 @@ void Pathfinder::DrawDebug()
 		USVec2D vEndPosition = GetEndPosition();
 		gfxDevice.SetPenColor(0.8f, 0.2f, 0.8f, 0.2f);
 		MOAIDraw::DrawEllipseFill(vEndPosition.mX + m_iTileSize/2, vEndPosition.mY + m_iTileSize/2, m_iTileSize/2, m_iTileSize/2, 16);
+
+		if (m_tPathPoints.size() > 0)
+		{
+			gfxDevice.SetPenColor(1.0f, 1.0f, 1.0f, 0.5f);
+			USVec2D vPreviousPoint = m_tPathPoints[0];
+			for (int i = 1; i < m_tPathPoints.size(); i++)
+			{
+				MOAIDraw::DrawLine(vPreviousPoint, m_tPathPoints[i]);
+				vPreviousPoint = m_tPathPoints[i];
+			}
+
+		}
 	}
 
 }
@@ -103,7 +106,43 @@ void Pathfinder::LoadGrid(string _sPath)
 	}
 	myReadFile.close();
 }
-char Pathfinder::GetTile(int _iX, int _iY)
+void Pathfinder::InitializeNodes()
+{
+	m_tNodes.clear();
+	for (int i = 0; i < m_tGrid.size(); i++)
+	{
+		char c = m_tGrid[i];
+		Node node;
+		node.m_iX = i % m_iGridWidth;
+		node.m_iY = i / m_iGridWidth;
+		if (c == '#')
+		{
+			node.m_bBlocked = true;
+		}
+		else if (c == 'A')
+		{
+			node.m_bBlocked = false;
+			node.m_iCost = 10;
+		}
+		else if (c == 'B')
+		{
+			node.m_bBlocked = false;
+			node.m_iCost = 20;
+		}
+		else if (c == 'C')
+		{
+			node.m_bBlocked = false;
+			node.m_iCost = 30;
+		}
+		else if (c == 'D')
+		{
+			node.m_bBlocked = false;
+			node.m_iCost = 40;
+		}
+		m_tNodes.push_back(node);
+	}
+}
+char Pathfinder::GetTileChar(int _iX, int _iY)
 {
 	if (_iX > m_iGridWidth || _iX < 0 || m_iGridWidth == 0)
 	{

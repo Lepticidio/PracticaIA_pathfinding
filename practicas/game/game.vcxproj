@@ -128,8 +128,9 @@
     <ClCompile Include="host\GlutHost.cpp" />
     <ClCompile Include="host\GlutHostMain.cpp" />
     <ClCompile Include="host\ParticlePresets.cpp" />
-    <ClCompile Include="Map.cpp" />
     <ClCompile Include="pathfinding\pathfinder.cpp" />
+    <ClCompile Include="PathFollowingSteering.cpp" />
+    <ClCompile Include="SeekSteering.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -140,8 +141,9 @@
     <ClInclude Include="host\FolderWatcher-win.h" />
     <ClInclude Include="host\GlutHost.h" />
     <ClInclude Include="host\ParticlePresets.h" />
-    <ClInclude Include="Map.h" />
     <ClInclude Include="pathfinding\pathfinder.h" />
+    <ClInclude Include="PathFollowingSteering.h" />
+    <ClInclude Include="SeekSteering.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

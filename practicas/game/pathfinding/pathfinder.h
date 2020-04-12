@@ -2,8 +2,17 @@
 #define __PATHFINDER_H__
 
 #include <moaicore/MOAIEntity2D.h>
-#include "Map.h"
 
+struct Node
+{
+	bool m_bBlocked;
+	int m_iX;
+	int m_iY;
+	int m_iCost;
+	float m_fH;
+	float m_fG;
+	float m_fF;
+};
 class Pathfinder: public virtual MOAIEntity2D
 {
 public:
@@ -18,6 +27,7 @@ public:
 	const USVec2D& GetEndPosition() const { return m_EndPosition;}
 
     bool PathfindStep();
+	std::vector<USVec2D> GetPath() { return m_tPathPoints; }
 private:
 	void UpdatePath();
 	//Map m_map;
@@ -28,8 +38,11 @@ private:
 	int m_iTileSize = 32;
 	std::vector<char> m_tGrid;
 	void LoadGrid(string _sPath);
-	char GetTile(int _iX, int _iY);
+	void InitializeNodes();
+	char GetTileChar(int _iX, int _iY);
 	USRect GetTileRect(int _iX, int _iY);
+	std::vector<USVec2D> m_tPathPoints;
+	std::vector<Node> m_tNodes;
 
 	// Lua configuration
 public:

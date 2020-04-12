@@ -3,6 +3,7 @@
 
 #include <moaicore/MOAIEntity2D.h>
 #include "pathfinding/pathfinder.h"
+#include "PathFollowingSteering.h"
 
 class Character: public MOAIEntity2D
 {
@@ -23,9 +24,15 @@ public:
 	
 	USVec2D GetLinearVelocity() const { return mLinearVelocity;}
 	float GetAngularVelocity() const { return mAngularVelocity;}
+	float GetMaxSpeed() { return m_fMaxSpeed; }
+	float GetMaxAcceleration() { return m_fMaxAcceleration; }
+	float GetLookAhead() { return m_fLookAhead; }
 private:
 	USVec2D mLinearVelocity;
 	float mAngularVelocity;
+	float m_fMaxSpeed = 2;
+	float m_fMaxAcceleration = 2;
+	float m_fLookAhead = 60;
 	
 	
 	
