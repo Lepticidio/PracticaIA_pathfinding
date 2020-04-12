@@ -21,46 +21,75 @@ Pathfinder::~Pathfinder()
 
 void Pathfinder::UpdatePath()
 {
+	m_tPathPoints.clear();
 	USVec2D vEndPosition = GetEndPosition();
 	USVec2D vStartPosition = GetStartPosition();
-	Node targetNode = NodeFromPosition(vEndPosition.mX, vEndPosition.mY);
-	Node currentNode = NodeFromPosition(vStartPosition.mX, vStartPosition.mY);
+	Node* targetNode = NodeFromPosition(vEndPosition.mX, vEndPosition.mY);
+	Node* currentNode = NodeFromPosition(vStartPosition.mX, vStartPosition.mY);
 
 	for (int i = 0; i < m_tNodes.size(); i++)
 	{
-		Node node = m_tNodes[i];
-		USVec2D vPositionNode = PositionFromNode(node);
-		node.UpdateH((vEndPosition - vPositionNode).Length());
+		Node* pNode = &m_tNodes[i];
+		USVec2D vPositionNode = PositionFromNode(pNode);
+		pNode->UpdateH((vEndPosition - vPositionNode).Length());
 	}
-	std::vector<Node> tUnexploredNodes = m_tNodes;
-	std::vector<Node> tOpenNodes;
-	std::vector<Node> tClosedNodes;
+	std::vector<Node*> tOpenNodes;
+	std::vector<Node*> tClosedNodes;
 	tOpenNodes.push_back(currentNode);
+	currentNode->parent = nullptr;
+	currentNode->UpdateG(0);
 	while (tOpenNodes.size() > 0)
 	{
 		float fSmallestF= std::numeric_limits<float>::max();
 		int iIndexCurrent = 0;
 		for (int i = 0; i < tOpenNodes.size(); i++)
 		{
-			Node node = tOpenNodes[i];
-			if (node.m_fF < fSmallestF)
+			Node* pNode = tOpenNodes[i];
+			if (pNode->m_fF < fSmallestF)
 			{
-				fSmallestF = node.m_fF;
-				currentNode = node;
+				fSmallestF = pNode->m_fF;
+				currentNode = pNode;
 				iIndexCurrent = i;
 			}
 		}
 		tOpenNodes.erase(tOpenNodes.begin()+iIndexCurrent);
 		tClosedNodes.push_back(currentNode);
 		USVec2D vCurrentPosition = PositionFromNode(currentNode);
-		m_tPathPoints.push_back(vCurrentPosition);
-		if (currentNode.m_iID == targetNode.m_iID)
+		if (currentNode == targetNode)
 		{
 			break;
 		}
-
+		int iCounter = 0;
+		while (iCounter < currentNode->tNeighbours.size())
+		{
+			Node* pNode = currentNode->tNeighbours[iCounter];
+			if (!pNode->m_bBlocked && std::count(tClosedNodes.begin(), tClosedNodes.end(), pNode) == 0)
+			{
+				USVec2D vNodePosition = PositionFromNode(pNode);
+				float fGValue = (vNodePosition - vCurrentPosition).Length() * (float)pNode->m_iCost + currentNode->m_fG;
+				if (std::count(tOpenNodes.begin(), tOpenNodes.end(), pNode) == 0 || fGValue < pNode->m_fG)
+				{
+					pNode->UpdateG(fGValue);
+					pNode->parent = currentNode;
+					if (std::count(tOpenNodes.begin(), tOpenNodes.end(), pNode) == 0)
+					{
+						tOpenNodes.push_back(pNode);
+					}
+				}
+			}
+			iCounter++;
+		}
+	}
+	while (currentNode->parent != nullptr)
+	{
+		USVec2D vNodePosition = PositionFromNode(currentNode);
+		m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+		currentNode = currentNode->parent;
 	}
 
+	USVec2D vNodePosition = PositionFromNode(currentNode);
+	m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+	currentNode = currentNode->parent;
 }
 
 void Pathfinder::DrawDebug()
@@ -109,11 +138,12 @@ void Pathfinder::DrawDebug()
 		if (m_tPathPoints.size() > 0)
 		{
 			gfxDevice.SetPenColor(1.0f, 1.0f, 1.0f, 0.5f);
-			USVec2D vPreviousPoint = m_tPathPoints[0];
+			USVec2D vOffset(m_iTileSize / 2, m_iTileSize / 2);
+			USVec2D vPreviousPoint = m_tPathPoints[0] + vOffset;
 			for (int i = 1; i < m_tPathPoints.size(); i++)
 			{
-				MOAIDraw::DrawLine(vPreviousPoint, m_tPathPoints[i]);
-				vPreviousPoint = m_tPathPoints[i];
+				MOAIDraw::DrawLine(vPreviousPoint, m_tPathPoints[i] + vOffset);
+				vPreviousPoint = m_tPathPoints[i] + vOffset;
 			}
 
 		}
@@ -153,7 +183,6 @@ void Pathfinder::InitializeNodes()
 		Node node;
 		node.m_iX = i % m_iGridWidth;
 		node.m_iY = i / m_iGridWidth;
-		node.m_iID = i;
 		if (c == '#')
 		{
 			node.m_bBlocked = true;
@@ -180,21 +209,66 @@ void Pathfinder::InitializeNodes()
 		}
 		m_tNodes.push_back(node);
 	}
+
+	for (int i = 0; i < m_tNodes.size(); i++)
+	{
+		Node* pNode = &m_tNodes[i];
+		if (pNode->m_iX > 0)
+		{
+			pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX - 1, pNode->m_iY));
+			if (pNode->m_iY > 0)
+			{
+				pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX - 1, pNode->m_iY - 1));
+			}
+			if (pNode->m_iY < m_tNodes.size() / m_iGridWidth - 1)
+			{
+				pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX - 1, pNode->m_iY + 1));
+			}
+		}
+		if (pNode->m_iX < m_iGridWidth - 1)
+		{
+			pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX + 1, pNode->m_iY));
+			if (pNode->m_iY > 0)
+			{
+				pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX + 1, pNode->m_iY - 1));
+			}
+			if (pNode->m_iY < m_tNodes.size() / m_iGridWidth - 1)
+			{
+				pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX + 1, pNode->m_iY + 1));
+			}
+		}
+		if (pNode->m_iY > 0)
+		{
+			pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX, pNode->m_iY - 1));
+		}
+		if (pNode->m_iY < m_tNodes.size() / m_iGridWidth - 1)
+		{
+			pNode->tNeighbours.push_back(NodeFromIndexes(pNode->m_iX, pNode->m_iY + 1));
+		}
+	}
 }
-Node Pathfinder::NodeFromPosition(float _fX, float _fY)
+Node* Pathfinder::NodeFromIndexes(int _iX, int _iY)
+{
+	int iLocation = _iY * m_iGridWidth + _iX;
+	if (iLocation > 0 && iLocation < m_tNodes.size())
+	{
+		return &m_tNodes[iLocation];
+	}
+}
+Node* Pathfinder::NodeFromPosition(float _fX, float _fY)
 {
 	int iX = _fX / m_iTileSize;
 	int iY = _fY / m_iTileSize;
 	int iLocation = iY * m_iGridWidth + iX;
 	if (iLocation > 0 && iLocation < m_tNodes.size())
 	{
-		return m_tNodes[iLocation];
+		return &m_tNodes[iLocation];
 	}
 }
-USVec2D Pathfinder::PositionFromNode(Node _node)
+USVec2D Pathfinder::PositionFromNode(Node* _node)
 {
-	float fX = _node.m_iX * m_iTileSize;
-	float fY = _node.m_iY * m_iTileSize;
+	float fX = _node->m_iX * m_iTileSize;
+	float fY = _node->m_iY * m_iTileSize;
 	return USVec2D(fX, fY);
 }
 char Pathfinder::GetTileChar(int _iX, int _iY)

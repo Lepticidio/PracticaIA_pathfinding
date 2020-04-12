@@ -6,7 +6,6 @@
 struct Node
 {
 	bool m_bBlocked;
-	int m_iID;
 	int m_iX;
 	int m_iY;
 	int m_iCost;
@@ -15,6 +14,8 @@ struct Node
 	float m_fF;
 	void UpdateH(float _fH) { m_fH = _fH; m_fF = m_fH + m_fG; }
 	void UpdateG(float _fG) { m_fG = _fG; m_fF = m_fH + m_fG; }
+	std::vector<Node*> tNeighbours;
+	Node* parent = nullptr;
 };
 class Pathfinder: public virtual MOAIEntity2D
 {
@@ -46,8 +47,9 @@ private:
 	USRect GetTileRect(int _iX, int _iY);
 	std::vector<USVec2D> m_tPathPoints;
 	std::vector<Node> m_tNodes;
-	Node NodeFromPosition(float _fX, float _fY);
-	USVec2D PositionFromNode(Node _node);
+	Node* NodeFromPosition(float _fX, float _fY);
+	Node* NodeFromIndexes(int _iX, int _iY);
+	USVec2D PositionFromNode(Node* _node);
 
 	// Lua configuration
 public:
