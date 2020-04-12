@@ -23,14 +23,14 @@ USVec2D ClosestPointInSegment(USVec2D _vASegment, USVec2D _vBSegment, USVec2D _v
 	return USVec2D((1 - fT) * _vASegment.mX, (1 - fT)* _vASegment.mY) +  USVec2D( fT * _vBSegment.mX, fT* _vBSegment.mY);
 }
 
-PathFollowingSteering::PathFollowingSteering(SeekSteering* _pSeek, Pathfinder* _pPath, Character* _pCharacter) : m_pSeek(_pSeek), m_pPath(_pPath), m_pCharacter(_pCharacter)
+PathFollowingSteering::PathFollowingSteering(SeekSteering* _pSeek, Character* _pCharacter) : m_pSeek(_pSeek),  m_pCharacter(_pCharacter)
 {
 }
 USVec2D PathFollowingSteering::GetSteering()
 {
 	int iClosestDestPointIndex = 1;
 	float fClosestDistance = FLT_MAX;
-	std::vector<USVec2D > tPoints = m_pPath->GetPath();
+	std::vector<USVec2D > tPoints = Pathfinder::m_tPathPoints;
 	for (int i = 1; i < tPoints.size(); i++)
 	{
 		USVec2D vPointA = tPoints[i - 1];

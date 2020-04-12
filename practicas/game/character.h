@@ -34,7 +34,7 @@ private:
 	float m_fMaxAcceleration = 2;
 	float m_fLookAhead = 60;
 	SeekSteering* m_pSeek;
-	PathFollowingSteering* m_pPathFollowing;
+	PathFollowingSteering* m_pPathSteering;
 	
 	
 	// Lua configuration

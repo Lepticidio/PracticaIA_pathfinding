@@ -29,9 +29,9 @@ public:
 	void SetEndPosition(float x, float y) { m_EndPosition = USVec2D(x, y); UpdatePath();}
 	const USVec2D& GetStartPosition() const { return m_StartPosition;}
 	const USVec2D& GetEndPosition() const { return m_EndPosition;}
+	static std::vector<USVec2D> m_tPathPoints;
 
     bool PathfindStep();
-	std::vector<USVec2D> GetPath() { return m_tPathPoints; }
 private:
 	void UpdatePath();
 	//Map m_map;
@@ -45,7 +45,6 @@ private:
 	void InitializeNodes();
 	char GetTileChar(int _iX, int _iY);
 	USRect GetTileRect(int _iX, int _iY);
-	std::vector<USVec2D> m_tPathPoints;
 	std::vector<Node> m_tNodes;
 	Node* NodeFromPosition(float _fX, float _fY);
 	Node* NodeFromIndexes(int _iX, int _iY);

@@ -15,7 +15,8 @@ Character::~Character()
 
 void Character::OnStart()
 {
-
+	m_pSeek = new SeekSteering(this);
+	m_pPathSteering = new PathFollowingSteering(m_pSeek, this);
 }
 
 void Character::OnStop()
@@ -25,6 +26,12 @@ void Character::OnStop()
 
 void Character::OnUpdate(float step)
 {
+
+	USVec2D vAcceleration = m_pPathSteering->GetSteering();
+	USVec2D vCurrentVelocity = GetLinearVelocity() + vAcceleration * step;
+	SetLinearVelocity(vCurrentVelocity.mX, vCurrentVelocity.mY);
+	SetLoc(GetLoc() + GetLinearVelocity() * step);
+
 }
 
 void Character::DrawDebug()

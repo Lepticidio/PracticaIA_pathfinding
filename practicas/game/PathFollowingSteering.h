@@ -13,8 +13,7 @@ protected:
 	Character* m_pCharacter;
 public:
 	SeekSteering* m_pSeek;
-	Pathfinder* m_pPath;
-	PathFollowingSteering(SeekSteering* _pSeek, Pathfinder* _pPath, Character* _pCharacter);
+	PathFollowingSteering(SeekSteering* _pSeek, Character* _pCharacter);
 	USVec2D GetSteering();
 	void Initialize();
 	void DrawDebug();

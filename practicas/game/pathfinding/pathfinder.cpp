@@ -3,7 +3,7 @@
 
 #include "pathfinder.h"
 
-
+std::vector<USVec2D> Pathfinder::m_tPathPoints;
 
 Pathfinder::Pathfinder() : MOAIEntity2D()
 {
