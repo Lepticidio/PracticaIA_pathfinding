@@ -68,8 +68,24 @@ function onKeyPressed(key, down)
 			pathfinder:pathfindStep()
 		end
 	end
-end
+	if key == 13 then
+		if down then
+			print(tostring(key))
+		else
+			pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
 
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+    		pathfinder:pathfindStep()
+		end
+	end
+end
 if (MOAIInputMgr.device.keyboard) then
     MOAIInputMgr.device.keyboard:setCallback(onKeyPressed)
 end

@@ -3,7 +3,10 @@
 
 #include "pathfinder.h"
 
-
+bool Pathfinder::m_bPathInitialized = false;
+bool Pathfinder::m_bStartInitialized = false;
+bool Pathfinder::m_bEndInitialized = false;
+bool Pathfinder::m_bPathFound = false;
 
 Pathfinder::Pathfinder() : MOAIEntity2D()
 {
@@ -21,79 +24,127 @@ Pathfinder::~Pathfinder()
 
 void Pathfinder::UpdatePath()
 {
-	m_tPathPoints.clear();
-	USVec2D vEndPosition = GetEndPosition();
-	USVec2D vStartPosition = GetStartPosition();
-	Node* targetNode = NodeFromPosition(vEndPosition.mX, vEndPosition.mY);
-	Node* currentNode = NodeFromPosition(vStartPosition.mX, vStartPosition.mY);
-
-	for (int i = 0; i < m_tNodes.size(); i++)
+	if(Pathfinder::m_bStartInitialized && Pathfinder::m_bEndInitialized)
 	{
-		Node* pNode = &m_tNodes[i];
-		USVec2D vPositionNode = PositionFromNode(pNode);
-		pNode->UpdateH((vEndPosition - vPositionNode).Length());
-	}
-	std::vector<Node*> tOpenNodes;
-	std::vector<Node*> tClosedNodes;
-	tOpenNodes.push_back(currentNode);
-	currentNode->parent = nullptr;
-	currentNode->UpdateG(0);
-	while (tOpenNodes.size() > 0)
-	{
-		float fSmallestF= std::numeric_limits<float>::max();
-		int iIndexCurrent = 0;
-		for (int i = 0; i < tOpenNodes.size(); i++)
+		if (!Pathfinder::m_bPathInitialized)
 		{
-			Node* pNode = tOpenNodes[i];
+			m_tPathPoints.clear();
+			m_tOpenNodes.clear();
+			m_tClosedNodes.clear();
+			m_vEndPosition = GetEndPosition();
+			m_vStartPosition = GetStartPosition();
+			m_targetNode = NodeFromPosition(m_vEndPosition.mX, m_vEndPosition.mY);
+			m_currentNode = NodeFromPosition(m_vStartPosition.mX, m_vStartPosition.mY);
+
+			for (int i = 0; i < m_tNodes.size(); i++)
+			{
+				Node* pNode = &m_tNodes[i];
+				USVec2D vPositionNode = PositionFromNode(pNode);
+				pNode->UpdateH((m_vEndPosition - vPositionNode).Length());
+			}
+			m_tOpenNodes.push_back(m_currentNode);
+			m_currentNode->parent = nullptr;
+			m_currentNode->UpdateG(0);
+			Pathfinder::m_bPathInitialized = true;
+		}
+		if (PathfindStep())
+		{
+			while (m_currentNode->parent != nullptr)
+			{
+				USVec2D vNodePosition = PositionFromNode(m_currentNode);
+				m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+				m_currentNode = m_currentNode->parent;
+			}
+
+			USVec2D vNodePosition = PositionFromNode(m_currentNode);
+			m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+			m_currentNode = m_currentNode->parent;
+		}
+
+	}
+}
+
+bool Pathfinder::PathfindStep()
+{
+	m_iSpaceCounter++;
+  	bool bFound = false;
+	if (m_tOpenNodes.size() > 0)
+	{
+		float fSmallestF = std::numeric_limits<float>::max();
+		int iIndexCurrent = 0;
+		for (int i = 0; i < m_tOpenNodes.size(); i++)
+		{
+			Node* pNode = m_tOpenNodes[i];
 			if (pNode->m_fF < fSmallestF)
 			{
 				fSmallestF = pNode->m_fF;
-				currentNode = pNode;
+				m_currentNode = pNode;
 				iIndexCurrent = i;
 			}
 		}
-		tOpenNodes.erase(tOpenNodes.begin()+iIndexCurrent);
-		tClosedNodes.push_back(currentNode);
-		USVec2D vCurrentPosition = PositionFromNode(currentNode);
-		if (currentNode == targetNode)
+		m_tOpenNodes.erase(m_tOpenNodes.begin() + iIndexCurrent);
+		m_tClosedNodes.push_back(m_currentNode);
+		USVec2D vCurrentPosition = PositionFromNode(m_currentNode);
+		if (m_currentNode == m_targetNode)
 		{
-			break;
+
+			while (m_currentNode->parent != nullptr)
+			{
+				USVec2D vNodePosition = PositionFromNode(m_currentNode);
+				m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+				m_currentNode = m_currentNode->parent;
+			}
+
+			USVec2D vNodePosition = PositionFromNode(m_currentNode);
+			m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+			m_currentNode = m_currentNode->parent;
+			Pathfinder::m_bPathFound = true;
 		}
 		int iCounter = 0;
-		while (iCounter < currentNode->tNeighbours.size())
+		while (!Pathfinder::m_bPathFound && iCounter < m_currentNode->tNeighbours.size())
 		{
-			Node* pNode = currentNode->tNeighbours[iCounter];
-			if (!pNode->m_bBlocked && std::count(tClosedNodes.begin(), tClosedNodes.end(), pNode) == 0)
+			Node* pNode = m_currentNode->tNeighbours[iCounter];
+			if (!pNode->m_bBlocked && std::count(m_tClosedNodes.begin(), m_tClosedNodes.end(), pNode) == 0)
 			{
 				USVec2D vNodePosition = PositionFromNode(pNode);
-				float fGValue = (vNodePosition - vCurrentPosition).Length() * (float)pNode->m_iCost + currentNode->m_fG;
-				if (std::count(tOpenNodes.begin(), tOpenNodes.end(), pNode) == 0 || fGValue < pNode->m_fG)
+				float fGValue = (vNodePosition - vCurrentPosition).Length() * (float)pNode->m_iCost + m_currentNode->m_fG;
+				if (std::count(m_tOpenNodes.begin(), m_tOpenNodes.end(), pNode) == 0 || fGValue < pNode->m_fG)
 				{
 					pNode->UpdateG(fGValue);
-					pNode->parent = currentNode;
-					if (std::count(tOpenNodes.begin(), tOpenNodes.end(), pNode) == 0)
+					pNode->parent = m_currentNode;
+					if (std::count(m_tOpenNodes.begin(), m_tOpenNodes.end(), pNode) == 0)
 					{
-						tOpenNodes.push_back(pNode);
+						m_tOpenNodes.push_back(pNode);
 					}
 				}
 			}
 			iCounter++;
 		}
+		return false;
 	}
-	while (currentNode->parent != nullptr)
+	/*
+	else
 	{
-		USVec2D vNodePosition = PositionFromNode(currentNode);
-		m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
-		currentNode = currentNode->parent;
-	}
 
-	USVec2D vNodePosition = PositionFromNode(currentNode);
-	m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
-	currentNode = currentNode->parent;
+		while (m_currentNode->parent != nullptr)
+		{
+			USVec2D vNodePosition = PositionFromNode(m_currentNode);
+			m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+			m_currentNode = m_currentNode->parent;
+		}
+
+		USVec2D vNodePosition = PositionFromNode(m_currentNode);
+		m_tPathPoints.insert(m_tPathPoints.begin(), vNodePosition);
+		m_currentNode = m_currentNode->parent;
+		Pathfinder::m_bPathFound = true;
+
+	}
+	*/
 }
 
 void Pathfinder::DrawDebug()
 {
+
 	MOAIGfxDevice& gfxDevice = MOAIGfxDevice::Get();
 	for (int i = 0; i < m_iGridWidth; i++)
 	{
@@ -103,37 +154,42 @@ void Pathfinder::DrawDebug()
 			if (c == '#')
 			{
 				gfxDevice.SetPenColor(0.2f, 0.2f, 0.8f, 0.2f);
-				USRect tileRect = GetTileRect(i, j);
+				USRect tileRect = GetTileRect(i, j, m_iTileSize, 0);
 				MOAIDraw::DrawRectFill(tileRect);
 			}
 			if (c == 'A')
 			{
 				gfxDevice.SetPenColor(0.2f, 0.8f, 0.2f, 0.2f);
-				USRect tileRect = GetTileRect(i, j);
+				USRect tileRect = GetTileRect(i, j, m_iTileSize, 0);
 				MOAIDraw::DrawRectFill(tileRect);
 			}
 			if (c == 'B')
 			{
 				gfxDevice.SetPenColor(0.4f, 0.6f, 0.2f, 0.2f);
-				USRect tileRect = GetTileRect(i, j);
+				USRect tileRect = GetTileRect(i, j, m_iTileSize, 0);
 				MOAIDraw::DrawRectFill(tileRect);
 			}
 			if (c == 'C')
 			{
 				gfxDevice.SetPenColor(0.6f, 0.4f, 0.2f, 0.2f);
-				USRect tileRect = GetTileRect(i, j);
+				USRect tileRect = GetTileRect(i, j, m_iTileSize, 0);
 				MOAIDraw::DrawRectFill(tileRect);
 			}
 			if (c == 'D')
 			{
 				gfxDevice.SetPenColor(0.8f, 0.2f, 0.2f, 0.2f);
-				USRect tileRect = GetTileRect(i, j);
+				USRect tileRect = GetTileRect(i, j, m_iTileSize, 0);
 				MOAIDraw::DrawRectFill(tileRect);
 			}
 		}
 		USVec2D vEndPosition = GetEndPosition();
-		gfxDevice.SetPenColor(0.8f, 0.2f, 0.8f, 0.2f);
-		MOAIDraw::DrawEllipseFill(vEndPosition.mX + m_iTileSize/2, vEndPosition.mY + m_iTileSize/2, m_iTileSize/2, m_iTileSize/2, 16);
+		gfxDevice.SetPenColor(0.8f, 0.2f, 0.8f, 0.8f);
+		MOAIDraw::DrawEllipseFill(vEndPosition.mX + m_iTileSize / 2, vEndPosition.mY + m_iTileSize / 2, m_iTileSize / 2, m_iTileSize / 2, 16);
+
+		USVec2D vStartPostion = GetStartPosition();
+		gfxDevice.SetPenColor(0.4f, 0.2f, 0.8f, 0.8f);
+		MOAIDraw::DrawEllipseFill(vStartPostion.mX + m_iTileSize / 2, vStartPostion.mY + m_iTileSize / 2, m_iTileSize / 2, m_iTileSize / 2, 16);
+
 
 		if (m_tPathPoints.size() > 0)
 		{
@@ -149,12 +205,21 @@ void Pathfinder::DrawDebug()
 		}
 	}
 
-}
+	for (int i = 0; i < m_tOpenNodes.size(); i++)
+	{
+		Node* pNode = m_tOpenNodes[i];
+		gfxDevice.SetPenColor(0.8f, 0.8f, 0.8f, 0.8f);
+		USRect tileRect = GetTileRect(pNode->m_iX, pNode->m_iY, m_iTileSize, m_iTileSize / 4);
+		MOAIDraw::DrawRectFill(tileRect);
+	}
 
-bool Pathfinder::PathfindStep()
-{
-    // returns true if pathfinding process finished
-    return true;
+	for (int i = 0; i < m_tClosedNodes.size(); i++)
+	{
+		Node* pNode = m_tClosedNodes[i];
+		gfxDevice.SetPenColor(0.2f, 0.2f, 0.2f, 0.8f);
+		USRect tileRect = GetTileRect(pNode->m_iX, pNode->m_iY, m_iTileSize, m_iTileSize / 4);
+		MOAIDraw::DrawRectFill(tileRect);
+	}
 }
 
 void Pathfinder::LoadGrid(string _sPath)
@@ -287,15 +352,14 @@ char Pathfinder::GetTileChar(int _iX, int _iY)
 		return m_tGrid[iCharLocation];
 	}
 }
-USRect Pathfinder::GetTileRect(int _iX, int _iY)
+USRect Pathfinder::GetTileRect(int _iX, int _iY, int _iTileSize, int _iOffset)
 {
 	USRect tileRect;
-	tileRect.mXMin = m_iTileSize * _iX;
-	tileRect.mXMax = m_iTileSize * (_iX + 1);
-	tileRect.mYMin = m_iTileSize * _iY;
-	tileRect.mYMax = m_iTileSize * (_iY + 1);
+	tileRect.mXMin = _iOffset + _iTileSize * _iX;
+	tileRect.mXMax = -_iOffset + _iTileSize * (_iX + 1);
+	tileRect.mYMin = _iOffset + _iTileSize * _iY;
+	tileRect.mYMax = -_iOffset + _iTileSize * (_iY + 1);
 	return tileRect;
-
 }
 
 
@@ -331,6 +395,9 @@ int Pathfinder::_setStartPosition(lua_State* L)
 
 	float pX = state.GetValue<float>(2, 0.0f);
 	float pY = state.GetValue<float>(3, 0.0f);
+	Pathfinder::m_bStartInitialized = true;
+	Pathfinder::m_bPathFound = false;
+	Pathfinder::m_bPathInitialized = false;
 	self->SetStartPosition(pX, pY);
 	return 0;
 }
@@ -341,6 +408,9 @@ int Pathfinder::_setEndPosition(lua_State* L)
 
 	float pX = state.GetValue<float>(2, 0.0f);
 	float pY = state.GetValue<float>(3, 0.0f);
+	Pathfinder::m_bEndInitialized = true;
+	Pathfinder::m_bPathFound = false;
+	Pathfinder::m_bPathInitialized = false;
 	self->SetEndPosition(pX, pY);
 	return 0;
 }
